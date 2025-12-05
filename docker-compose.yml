@@ -1,6 +1,6 @@
 services:
 
-  # ========================= AUTH SERVICE =========================
+  # ================= AUTH SERVICE =================
   auth-service:
     build: ./auth-service
     container_name: auth-service
@@ -26,23 +26,23 @@ services:
     networks:
       - app-network
 
-  # ========================= EVALUATION SERVICE =========================
-evaluation-service:
-  build: ./evaluation-service
-  container_name: evaluation-service
-  ports:
-    - "8002:8000"
-  environment:
-    REDIS_URL: redis://evaluation-redis:6379
-    FLAG_SERVICE_URL: http://flag-service:8000
-    TARGETING_SERVICE_URL: http://targeting-service:8000
-    SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
-  depends_on:
-    - evaluation-redis
-    - flag-service
-    - targeting-service
-  networks:
-    - app-network
+  # ================= EVALUATION SERVICE =================
+  evaluation-service:
+    build: ./evaluation-service
+    container_name: evaluation-service
+    ports:
+      - "8002:8000"
+    environment:
+      REDIS_URL: redis://evaluation-redis:6379
+      FLAG_SERVICE_URL: http://flag-service:8000
+      TARGETING_SERVICE_URL: http://targeting-service:8000
+      SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
+    depends_on:
+      - evaluation-redis
+      - flag-service
+      - targeting-service
+    networks:
+      - app-network
 
   evaluation-redis:
     image: redis:7
@@ -52,7 +52,7 @@ evaluation-service:
     volumes:
       - evaluation-redis-data:/data
 
-  # ========================= TARGETING SERVICE =========================
+  # ================= TARGETING SERVICE =================
   targeting-service:
     build: ./targeting-service
     container_name: targeting-service
@@ -77,7 +77,7 @@ evaluation-service:
     networks:
       - app-network
 
-  # ========================= FLAG SERVICE =========================
+  # ================= FLAG SERVICE =================
   flag-service:
     build: ./flag-service
     container_name: flag-service
@@ -102,7 +102,7 @@ evaluation-service:
     networks:
       - app-network
 
-  # ========================= ANALYTICS SERVICE =========================
+  # ================= ANALYTICS SERVICE =================
   analytics-service:
     build: ./analytics-service
     container_name: analytics-service
@@ -125,7 +125,7 @@ evaluation-service:
     networks:
       - app-network
 
-# ========================= NETWORKS & VOLUMES =========================
+# ================= NETWORKS & VOLUMES =================
 
 networks:
   app-network:
