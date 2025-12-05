@@ -11,20 +11,14 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - auth_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      retries: 5
     networks:
       - app-net
 
   auth-service:
-    build:
-      context: ./auth-service
+    build: ./auth-service
     container_name: auth-service
     depends_on:
-      auth-db:
-        condition: service_healthy
+      - auth-db
     environment:
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb?sslmode=disable
       MASTER_KEY: mymasterkey123
@@ -45,23 +39,16 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - flag_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      retries: 5
     networks:
       - app-net
 
   flag-service:
-    build:
-      context: ./flag-service
+    build: ./flag-service
     container_name: flag-service
     depends_on:
-      flag-db:
-        condition: service_healthy
+      - flag-db
     environment:
       DATABASE_URL: postgres://postgres:postgres@flag-db:5432/flagdb
-      FLASK_ENV: production
     ports:
       - "8003:8000"
     networks:
@@ -79,23 +66,16 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - targeting_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      retries: 5
     networks:
       - app-net
 
   targeting-service:
-    build:
-      context: ./targeting-service
+    build: ./targeting-service
     container_name: targeting-service
     depends_on:
-      targeting-db:
-        condition: service_healthy
+      - targeting-db
     environment:
       DATABASE_URL: postgres://postgres:postgres@targeting-db:5432/targetingdb
-      FLASK_ENV: production
     ports:
       - "8004:8000"
     networks:
@@ -111,8 +91,7 @@ services:
       - app-net
 
   evaluation-service:
-    build:
-      context: ./evaluation-service
+    build: ./evaluation-service
     container_name: evaluation-service
     depends_on:
       - evaluation-redis
@@ -135,8 +114,7 @@ services:
       - app-net
 
   analytics-service:
-    build:
-      context: ./analytics-service
+    build: ./analytics-service
     container_name: analytics-service
     depends_on:
       - analytics-dynamodb
@@ -150,7 +128,7 @@ services:
       - app-net
 
 # =========================
-# VOLUMES
+# VOLUMES DEFINIDOS CORRETAMENTE
 # =========================
 volumes:
   auth_db_data:
@@ -158,7 +136,7 @@ volumes:
   targeting_db_data:
 
 # =========================
-# NETWORKS
+# NETWORK
 # =========================
 networks:
   app-net:
