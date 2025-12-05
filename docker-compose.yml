@@ -1,171 +1,165 @@
 services:
-
-  # ================= AUTH SERVICE =================
-  auth-service:
-    build: ./auth-service
-    container_name: auth-service
-    ports:
-      - "8001:8000"
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb?sslmode=disable
-      MASTER_KEY: SUPER_MASTER_KEY_123
-    depends_on:
-      auth-db:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-
+  # =========================
+  # AUTH SERVICE + DATABASE
+  # =========================
   auth-db:
     image: postgres:15
     container_name: auth-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: authdb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - auth-db-data:/var/lib/postgresql/data
-    networks:
-      - app-network
-
-
-  # ================= EVALUATION SERVICE =================
-  evaluation-service:
-    build: ./evaluation-service
-    container_name: evaluation-service
-    ports:
-      - "8002:8000"
-    environment:
-      REDIS_URL: redis://evaluation-redis:6379
-      FLAG_SERVICE_URL: http://flag-service:8000
-      TARGETING_SERVICE_URL: http://targeting-service:8000
-      SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
-    depends_on:
-      evaluation-redis:
-        condition: service_started
-      flag-service:
-        condition: service_started
-      targeting-service:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  evaluation-redis:
-    image: redis:7
-    container_name: evaluation-redis
-    volumes:
-      - evaluation-redis-data:/data
-    networks:
-      - app-network
-
-
-  # ================= TARGETING SERVICE =================
-  targeting-service:
-    build: ./targeting-service
-    container_name: targeting-service
-    ports:
-      - "8003:8000"
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@targeting-db:5432/targetingdb?sslmode=disable
-    depends_on:
-      targeting-db:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  targeting-db:
-    image: postgres:15
-    container_name: targeting-db
-    environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: targetingdb
     volumes:
-      - targeting-db-data:/var/lib/postgresql/data
+      - auth_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
-      timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - app-net
 
-
-  # ================= FLAG SERVICE =================
-  flag-service:
-    build: ./flag-service
-    container_name: flag-service
-    ports:
-      - "8004:8000"
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@flag-db:5432/flagdb?sslmode=disable
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
     depends_on:
-      flag-db:
+      auth-db:
         condition: service_healthy
-    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb?sslmode=disable
+      MASTER_KEY: mymasterkey123
+    ports:
+      - "8001:8000"
     networks:
-      - app-network
+      - app-net
 
+  # =========================
+  # FLAG SERVICE + DATABASE
+  # =========================
   flag-db:
     image: postgres:15
     container_name: flag-db
     environment:
+      POSTGRES_DB: flagdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: flagdb
     volumes:
-      - flag-db-data:/var/lib/postgresql/data
+      - flag_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
-      timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - app-net
 
-
-  # ================= ANALYTICS SERVICE =================
-  analytics-service:
-    build: ./analytics-service
-    container_name: analytics-service
-    ports:
-      - "8005:8000"
-    environment:
-      DYNAMODB_ENDPOINT: http://analytics-dynamodb:8000
+  flag-service:
+    build:
+      context: ./flag-service
+    container_name: flag-service
     depends_on:
-      analytics-dynamodb:
-        condition: service_started
-    restart: unless-stopped
+      flag-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@flag-db:5432/flagdb
+      FLASK_ENV: production
+    ports:
+      - "8003:8000"
     networks:
-      - app-network
+      - app-net
 
+  # =========================
+  # TARGETING SERVICE + DATABASE
+  # =========================
+  targeting-db:
+    image: postgres:15
+    container_name: targeting-db
+    environment:
+      POSTGRES_DB: targetingdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - targeting_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 5
+    networks:
+      - app-net
+
+  targeting-service:
+    build:
+      context: ./targeting-service
+    container_name: targeting-service
+    depends_on:
+      targeting-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@targeting-db:5432/targetingdb
+      FLASK_ENV: production
+    ports:
+      - "8004:8000"
+    networks:
+      - app-net
+
+  # =========================
+  # EVALUATION SERVICE + REDIS
+  # =========================
+  evaluation-redis:
+    image: redis:7
+    container_name: evaluation-redis
+    networks:
+      - app-net
+
+  evaluation-service:
+    build:
+      context: ./evaluation-service
+    container_name: evaluation-service
+    depends_on:
+      - evaluation-redis
+    environment:
+      REDIS_URL: redis://evaluation-redis:6379
+    ports:
+      - "8002:8000"
+    networks:
+      - app-net
+
+  # =========================
+  # ANALYTICS SERVICE + DYNAMODB LOCAL
+  # =========================
   analytics-dynamodb:
-    image: amazon/dynamodb-local:latest
+    image: amazon/dynamodb-local
     container_name: analytics-dynamodb
     ports:
       - "8006:8000"
-    volumes:
-      - analytics-dynamodb-data:/home/dynamodblocal/data
     networks:
-      - app-network
+      - app-net
 
+  analytics-service:
+    build:
+      context: ./analytics-service
+    container_name: analytics-service
+    depends_on:
+      - analytics-dynamodb
+    environment:
+      AWS_REGION: us-east-1
+      AWS_SQS_URL: http://analytics-dynamodb:8000
+      AWS_DYNAMODB_TABLE: analytics-table
+    ports:
+      - "8005:8000"
+    networks:
+      - app-net
 
-# ================= NETWORKS & VOLUMES =================
-
-networks:
-  app-network:
-    driver: bridge
-
+# =========================
+# VOLUMES
+# =========================
 volumes:
-  auth-db-data:
-  targeting-db-data:
-  flag-db-data:
-  evaluation-redis-data:
-  analytics-dynamodb-data:
+  auth_db_data:
+  flag_db_data:
+  targeting_db_data:
+
+# =========================
+# NETWORKS
+# =========================
+networks:
+  app-net:
+    driver: bridge
