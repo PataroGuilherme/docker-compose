@@ -136,7 +136,6 @@ services:
 
 
 # ----------------------- NETWORKS & VOLUMES -----------------------
-
 networks:
   app-network:
     driver: bridge
