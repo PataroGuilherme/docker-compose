@@ -1,19 +1,14 @@
-version: "3.9"
-
 services:
 
-  # ----------------------- AUTH SERVICE -----------------------
+  # ========================= AUTH SERVICE =========================
   auth-service:
     build: ./auth-service
     container_name: auth-service
     ports:
       - "8001:8000"
     environment:
-      DB_HOST: auth-db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASS: postgres
-      DB_NAME: authdb
+      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb?sslmode=disable
+      MASTER_KEY: SUPER_MASTER_KEY_123
     depends_on:
       - auth-db
     networks:
@@ -31,7 +26,7 @@ services:
     networks:
       - app-network
 
-  # ----------------------- EVALUATION SERVICE -----------------------
+  # ========================= EVALUATION SERVICE =========================
   evaluation-service:
     build: ./evaluation-service
     container_name: evaluation-service
@@ -40,8 +35,13 @@ services:
     environment:
       REDIS_HOST: evaluation-redis
       REDIS_PORT: 6379
+      FLAG_SERVICE_URL: http://flag-service:8000
+      TARGETING_SERVICE_URL: http://targeting-service:8000
+      SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
     depends_on:
       - evaluation-redis
+      - flag-service
+      - targeting-service
     networks:
       - app-network
 
@@ -53,18 +53,14 @@ services:
     volumes:
       - evaluation-redis-data:/data
 
-  # ----------------------- TARGETING SERVICE -----------------------
+  # ========================= TARGETING SERVICE =========================
   targeting-service:
     build: ./targeting-service
     container_name: targeting-service
     ports:
       - "8003:8000"
     environment:
-      DB_HOST: targeting-db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASS: postgres
-      DB_NAME: targetingdb
+      DATABASE_URL: postgres://postgres:postgres@targeting-db:5432/targetingdb?sslmode=disable
     depends_on:
       - targeting-db
     networks:
@@ -82,18 +78,14 @@ services:
     networks:
       - app-network
 
-  # ----------------------- FLAG SERVICE -----------------------
+  # ========================= FLAG SERVICE =========================
   flag-service:
     build: ./flag-service
     container_name: flag-service
     ports:
       - "8004:8000"
     environment:
-      DB_HOST: flag-db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASS: postgres
-      DB_NAME: flagdb
+      DATABASE_URL: postgres://postgres:postgres@flag-db:5432/flagdb?sslmode=disable
     depends_on:
       - flag-db
     networks:
@@ -111,7 +103,7 @@ services:
     networks:
       - app-network
 
-  # ----------------------- ANALYTICS SERVICE -----------------------
+  # ========================= ANALYTICS SERVICE =========================
   analytics-service:
     build: ./analytics-service
     container_name: analytics-service
@@ -129,13 +121,13 @@ services:
     container_name: analytics-dynamodb
     ports:
       - "8006:8000"
-    networks:
-      - app-network
     volumes:
       - analytics-dynamodb-data:/home/dynamodblocal/data
+    networks:
+      - app-network
 
+# ========================= NETWORKS & VOLUMES =========================
 
-# ----------------------- NETWORKS & VOLUMES -----------------------
 networks:
   app-network:
     driver: bridge
