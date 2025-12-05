@@ -1,0 +1,149 @@
+version: "3.9"
+
+services:
+
+  # ----------------------- AUTH SERVICE -----------------------
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8001:8000"
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: authdb
+    depends_on:
+      - auth-db
+    networks:
+      - app-network
+
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: authdb
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # ----------------------- EVALUATION SERVICE -----------------------
+  evaluation-service:
+    build: ./evaluation-service
+    container_name: evaluation-service
+    ports:
+      - "8002:8000"
+    environment:
+      REDIS_HOST: evaluation-redis
+      REDIS_PORT: 6379
+    depends_on:
+      - evaluation-redis
+    networks:
+      - app-network
+
+  evaluation-redis:
+    image: redis:7
+    container_name: evaluation-redis
+    networks:
+      - app-network
+    volumes:
+      - evaluation-redis-data:/data
+
+  # ----------------------- TARGETING SERVICE -----------------------
+  targeting-service:
+    build: ./targeting-service
+    container_name: targeting-service
+    ports:
+      - "8003:8000"
+    environment:
+      DB_HOST: targeting-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: targetingdb
+    depends_on:
+      - targeting-db
+    networks:
+      - app-network
+
+  targeting-db:
+    image: postgres:15
+    container_name: targeting-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: targetingdb
+    volumes:
+      - targeting-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # ----------------------- FLAG SERVICE -----------------------
+  flag-service:
+    build: ./flag-service
+    container_name: flag-service
+    ports:
+      - "8004:8000"
+    environment:
+      DB_HOST: flag-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flagdb
+    depends_on:
+      - flag-db
+    networks:
+      - app-network
+
+  flag-db:
+    image: postgres:15
+    container_name: flag-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flagdb
+    volumes:
+      - flag-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # ----------------------- ANALYTICS SERVICE -----------------------
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    ports:
+      - "8005:8000"
+    environment:
+      DYNAMODB_ENDPOINT: http://analytics-dynamodb:8000
+    depends_on:
+      - analytics-dynamodb
+    networks:
+      - app-network
+
+  analytics-dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: analytics-dynamodb
+    ports:
+      - "8006:8000"
+    networks:
+      - app-network
+    volumes:
+      - analytics-dynamodb-data:/home/dynamodblocal/data
+
+
+# ----------------------- NETWORKS & VOLUMES -----------------------
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  targeting-db-data:
+  flag-db-data:
+  evaluation-redis-data:
+  analytics-dynamodb-data:
