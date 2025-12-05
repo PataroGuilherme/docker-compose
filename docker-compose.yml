@@ -10,7 +10,9 @@ services:
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/authdb?sslmode=disable
       MASTER_KEY: SUPER_MASTER_KEY_123
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -21,10 +23,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: authdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
     volumes:
       - auth-db-data:/var/lib/postgresql/data
     networks:
       - app-network
+
 
   # ================= EVALUATION SERVICE =================
   evaluation-service:
@@ -38,19 +46,24 @@ services:
       TARGETING_SERVICE_URL: http://targeting-service:8000
       SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
     depends_on:
-      - evaluation-redis
-      - flag-service
-      - targeting-service
+      evaluation-redis:
+        condition: service_started
+      flag-service:
+        condition: service_started
+      targeting-service:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - app-network
 
   evaluation-redis:
     image: redis:7
     container_name: evaluation-redis
-    networks:
-      - app-network
     volumes:
       - evaluation-redis-data:/data
+    networks:
+      - app-network
+
 
   # ================= TARGETING SERVICE =================
   targeting-service:
@@ -61,7 +74,9 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@targeting-db:5432/targetingdb?sslmode=disable
     depends_on:
-      - targeting-db
+      targeting-db:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -74,8 +89,14 @@ services:
       POSTGRES_DB: targetingdb
     volumes:
       - targeting-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
+
 
   # ================= FLAG SERVICE =================
   flag-service:
@@ -86,7 +107,9 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@flag-db:5432/flagdb?sslmode=disable
     depends_on:
-      - flag-db
+      flag-db:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -99,8 +122,14 @@ services:
       POSTGRES_DB: flagdb
     volumes:
       - flag-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
+
 
   # ================= ANALYTICS SERVICE =================
   analytics-service:
@@ -111,7 +140,9 @@ services:
     environment:
       DYNAMODB_ENDPOINT: http://analytics-dynamodb:8000
     depends_on:
-      - analytics-dynamodb
+      analytics-dynamodb:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -124,6 +155,7 @@ services:
       - analytics-dynamodb-data:/home/dynamodblocal/data
     networks:
       - app-network
+
 
 # ================= NETWORKS & VOLUMES =================
 
