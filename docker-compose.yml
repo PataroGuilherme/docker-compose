@@ -27,23 +27,22 @@ services:
       - app-network
 
   # ========================= EVALUATION SERVICE =========================
-  evaluation-service:
-    build: ./evaluation-service
-    container_name: evaluation-service
-    ports:
-      - "8002:8000"
-    environment:
-      REDIS_HOST: evaluation-redis
-      REDIS_PORT: 6379
-      FLAG_SERVICE_URL: http://flag-service:8000
-      TARGETING_SERVICE_URL: http://targeting-service:8000
-      SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
-    depends_on:
-      - evaluation-redis
-      - flag-service
-      - targeting-service
-    networks:
-      - app-network
+evaluation-service:
+  build: ./evaluation-service
+  container_name: evaluation-service
+  ports:
+    - "8002:8000"
+  environment:
+    REDIS_URL: redis://evaluation-redis:6379
+    FLAG_SERVICE_URL: http://flag-service:8000
+    TARGETING_SERVICE_URL: http://targeting-service:8000
+    SERVICE_API_KEY: INTERNAL_API_KEY_ABC123
+  depends_on:
+    - evaluation-redis
+    - flag-service
+    - targeting-service
+  networks:
+    - app-network
 
   evaluation-redis:
     image: redis:7
