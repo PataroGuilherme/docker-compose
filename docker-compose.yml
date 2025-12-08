@@ -63,4 +63,4 @@ services:
       - auth-service
       - evaluation-redis
     environment:
-      PORT: "8005
+      PORT: "8005"
