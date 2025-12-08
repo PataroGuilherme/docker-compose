@@ -2,20 +2,22 @@ services:
   # -----------------------------
   # PostgreSQL para o auth-service
   # -----------------------------
-  auth-postgres:
-    image: postgres:15
-    container_name: auth-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: auth_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - auth_pgdata:/var/lib/postgresql/data
-    networks:
-      - togglemaster
+auth-postgres:
+  image: postgres:15
+  container_name: auth-postgres
+  restart: always
+  environment:
+    POSTGRES_USER: admin
+    POSTGRES_PASSWORD: admin123
+    POSTGRES_DB: auth_db
+  ports:
+    - "5432:5432"
+  volumes:
+    - auth_pgdata:/var/lib/postgresql/data
+    - ./db-init/auth:/docker-entrypoint-initdb.d
+  networks:
+    - togglemaster
+
 
   # -----------------------------
   # auth-service (Go)
