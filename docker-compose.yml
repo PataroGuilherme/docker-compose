@@ -76,6 +76,48 @@ services:
     networks:
       - togglemaster
 
+
+# -----------------------------
+# PostgreSQL para o targeting-service
+# -----------------------------
+  targeting-postgres:
+    image: postgres:15
+    container_name: targeting-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: targeting_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - targeting_pgdata:/var/lib/postgresql/data
+      - ./db-init/targeting:/docker-entrypoint-initdb.d
+    networks:
+      - togglemaster
+      
+# -----------------------------
+# targeting-service (Python)
+# -----------------------------
+
+  targeting-service:
+    build:
+      context: ./targeting-service
+    container_name: targeting-service
+    restart: always
+    depends_on:
+      - targeting-postgres
+      - auth-service
+    environment:
+      PORT: "8003"
+      DATABASE_URL: postgres://admin:admin123@targeting-postgres:5432/targeting_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+      SERVICE_API_KEY: tm_key_f6ca8c82ecc2cf8f49c94ae7500885e9b7d02ff6193b76bd0d0a8446b0ce90f1
+    ports:
+      - "8003:8003"
+    networks:
+      - togglemaster
+
 # -----------------------------
 # Volumes persistentes
 # -----------------------------
