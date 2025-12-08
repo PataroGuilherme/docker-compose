@@ -1,0 +1,88 @@
+services:
+  # -----------------------------
+  # PostgreSQL para o auth-service
+  # -----------------------------
+  auth-postgres:
+    image: postgres:15
+    container_name: auth-db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: auth-db
+    ports:
+      - "5432:5432"
+    volumes:
+      -v $(pwd)/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - togglemaster
+
+  # -----------------------------
+  # auth-service (Go)
+  # -----------------------------
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    restart: always
+    depends_on:
+      - auth-postgres
+    environment:
+      PORT: 8001
+      DATABASE_URL: postgres://admin:admin123@localhost:5432/auth-db
+      MASTER_KEY: admin-secreto-123
+    ports:
+      - "8001:8001"
+    networks:
+      - togglemaster
+
+  # -----------------------------
+  # Redis para o evaluation-service
+  # -----------------------------
+  evaluation-redis:
+    image: redis:7
+    container_name: evaluation-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - evaluation_redis_data:/data
+    networks:
+      - togglemaster
+
+  # -----------------------------
+  # evaluation-service (Go)
+  # -----------------------------
+  evaluation-service:
+    build:
+      context: ./evaluation-service
+    container_name: evaluation-service
+    restart: always
+    depends_on:
+      - auth-service
+      - evaluation-redis
+    environment:
+      PORT: 8005
+      AUTH_SERVICE_URL: http://auth-service:8001
+      FLAG_SERVICE_URL: http://flag-service:8002   # será ativado futuramente
+      TARGETING_SERVICE_URL: http://targeting-service:8003   # será ativado futuramente
+      REDIS_URL: redis://evaluation-redis:6379
+      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      AWS_SQS_URL: disabled
+    ports:
+      - "8005:8005"
+    networks:
+      - togglemaster
+
+# -----------------------------
+# Volumes persistentes
+# -----------------------------
+volumes:
+  auth_pgdata:
+  evaluation_redis_data:
+
+# -----------------------------
+# Rede compartilhada
+# -----------------------------
+networks:
+  togglemaster:
