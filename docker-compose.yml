@@ -4,12 +4,12 @@ services:
   # -----------------------------
   auth-postgres:
     image: postgres:15
-    container_name: auth-db
+    container_name: auth-postgres
     restart: always
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: auth-db
+      POSTGRES_DB: auth_db
     ports:
       - "5432:5432"
     volumes:
@@ -28,8 +28,8 @@ services:
     depends_on:
       - auth-postgres
     environment:
-      PORT: 8001
-      DATABASE_URL: postgres://admin:admin123@localhost:5432/auth-db
+      PORT: "8001"
+      DATABASE_URL: postgres://admin:admin123@auth-postgres:5432/auth_db
       MASTER_KEY: admin-secreto-123
     ports:
       - "8001:8001"
@@ -62,10 +62,10 @@ services:
       - auth-service
       - evaluation-redis
     environment:
-      PORT: 8005
+      PORT: "8005"
       AUTH_SERVICE_URL: http://auth-service:8001
-      FLAG_SERVICE_URL: http://flag-service:8002   # será ativado futuramente
-      TARGETING_SERVICE_URL: http://targeting-service:8003   # será ativado futuramente
+      FLAG_SERVICE_URL: http://flag-service:8002
+      TARGETING_SERVICE_URL: http://targeting-service:8003
       REDIS_URL: redis://evaluation-redis:6379
       SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
       AWS_SQS_URL: disabled
@@ -75,15 +75,9 @@ services:
     networks:
       - togglemaster
 
-# -----------------------------
-# Volumes persistentes
-# -----------------------------
 volumes:
   auth_pgdata:
   evaluation_redis_data:
 
-# -----------------------------
-# Rede compartilhada
-# -----------------------------
 networks:
   togglemaster:
