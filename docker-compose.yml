@@ -68,7 +68,7 @@ services:
       FLAG_SERVICE_URL: http://flag-service:8002
       TARGETING_SERVICE_URL: http://targeting-service:8003
       REDIS_URL: redis://evaluation-redis:6379
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      SERVICE_API_KEY: tm_key_f6ca8c82ecc2cf8f49c94ae7500885e9b7d02ff6193b76bd0d0a8446b0ce90f1
       AWS_SQS_URL: disabled
       AWS_REGION: disabled
     ports:
