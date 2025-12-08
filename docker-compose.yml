@@ -1,4 +1,7 @@
+version: "3.9"
+
 services:
+
   # ============================================
   # PostgreSQL do AUTH-SERVICE
   # ============================================
@@ -65,7 +68,7 @@ services:
     environment:
       PORT: "8005"
       AUTH_SERVICE_URL: http://auth-service:8001
-      FLAG_SERVICE_URL: http://flag-service:8002         # futuro
+      FLAG_SERVICE_URL: http://flag-service:8002
       TARGETING_SERVICE_URL: http://targeting-service:8003
       REDIS_URL: redis://evaluation-redis:6379
       SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
@@ -116,6 +119,47 @@ services:
     networks:
       - togglemaster
 
+  # ============================================
+  # PostgreSQL do FLAG-SERVICE
+  # ============================================
+  flags-postgres:
+    image: postgres:15
+    container_name: flags-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: flags_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - flags_pgdata:/var/lib/postgresql/data
+      - ./db-init/flags:/docker-entrypoint-initdb.d
+    networks:
+      - togglemaster
+
+  # ============================================
+  # FLAG-SERVICE (Python)
+  # ============================================
+  flag-service:
+    build:
+      context: ./flag-service
+    container_name: flag-service
+    restart: always
+    depends_on:
+      - flags-postgres
+      - auth-service
+    environment:
+      PORT: "8002"
+      DATABASE_URL: postgres://admin:admin123@flags-postgres:5432/flags_db
+      AUTH_SERVICE_URL: http://auth-service:8001
+      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+    ports:
+      - "8002:8002"
+    networks:
+      - togglemaster
+
+
 # ============================================
 # VOLUMES PERSISTENTES
 # ============================================
@@ -123,9 +167,10 @@ volumes:
   auth_pgdata:
   evaluation_redis_data:
   targeting_pgdata:
+  flags_pgdata:
 
 # ============================================
-# REDE COMPARTILHADA ENTRE TODOS OS SERVIÇOS
+# REDE COMPARTILHADA
 # ============================================
 networks:
   togglemaster:
