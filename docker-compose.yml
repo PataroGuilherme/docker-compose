@@ -69,6 +69,7 @@ services:
       REDIS_URL: redis://evaluation-redis:6379
       SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
       AWS_SQS_URL: disabled
+      AWS_REGION: disabled
     ports:
       - "8005:8005"
     networks:
