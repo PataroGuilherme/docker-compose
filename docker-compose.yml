@@ -1,7 +1,9 @@
+version: "3.9"
+
 services:
-  # -----------------------------
-  # PostgreSQL para o auth-service
-  # -----------------------------
+  # ============================================
+  # PostgreSQL do AUTH-SERVICE
+  # ============================================
   auth-postgres:
     image: postgres:15
     container_name: auth-postgres
@@ -18,9 +20,9 @@ services:
     networks:
       - togglemaster
 
-  # -----------------------------
-  # auth-service (Go)
-  # -----------------------------
+  # ============================================
+  # AUTH-SERVICE (Go)
+  # ============================================
   auth-service:
     build:
       context: ./auth-service
@@ -37,9 +39,9 @@ services:
     networks:
       - togglemaster
 
-  # -----------------------------
-  # Redis para o evaluation-service
-  # -----------------------------
+  # ============================================
+  # Redis do EVALUATION-SERVICE
+  # ============================================
   evaluation-redis:
     image: redis:7
     container_name: evaluation-redis
@@ -51,9 +53,9 @@ services:
     networks:
       - togglemaster
 
-  # -----------------------------
-  # evaluation-service (Go)
-  # -----------------------------
+  # ============================================
+  # EVALUATION-SERVICE (Go)
+  # ============================================
   evaluation-service:
     build:
       context: ./evaluation-service
@@ -65,10 +67,10 @@ services:
     environment:
       PORT: "8005"
       AUTH_SERVICE_URL: http://auth-service:8001
-      FLAG_SERVICE_URL: http://flag-service:8002
+      FLAG_SERVICE_URL: http://flag-service:8002         # futuro
       TARGETING_SERVICE_URL: http://targeting-service:8003
       REDIS_URL: redis://evaluation-redis:6379
-      SERVICE_API_KEY: tm_key_f6ca8c82ecc2cf8f49c94ae7500885e9b7d02ff6193b76bd0d0a8446b0ce90f1
+      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
       AWS_SQS_URL: disabled
       AWS_REGION: disabled
     ports:
@@ -76,10 +78,9 @@ services:
     networks:
       - togglemaster
 
-
-# -----------------------------
-# PostgreSQL para o targeting-service
-# -----------------------------
+  # ============================================
+  # PostgreSQL do TARGETING-SERVICE
+  # ============================================
   targeting-postgres:
     image: postgres:15
     container_name: targeting-postgres
@@ -95,11 +96,10 @@ services:
       - ./db-init/targeting:/docker-entrypoint-initdb.d
     networks:
       - togglemaster
-      
-# -----------------------------
-# targeting-service (Python)
-# -----------------------------
 
+  # ============================================
+  # TARGETING-SERVICE (Python)
+  # ============================================
   targeting-service:
     build:
       context: ./targeting-service
@@ -112,21 +112,22 @@ services:
       PORT: "8003"
       DATABASE_URL: postgres://admin:admin123@targeting-postgres:5432/targeting_db
       AUTH_SERVICE_URL: http://auth-service:8001
-      SERVICE_API_KEY: tm_key_f6ca8c82ecc2cf8f49c94ae7500885e9b7d02ff6193b76bd0d0a8446b0ce90f1
+      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
     ports:
       - "8003:8003"
     networks:
       - togglemaster
 
-# -----------------------------
-# Volumes persistentes
-# -----------------------------
+# ============================================
+# VOLUMES PERSISTENTES
+# ============================================
 volumes:
   auth_pgdata:
   evaluation_redis_data:
+  targeting_pgdata:
 
-# -----------------------------
-# Rede compartilhada
-# -----------------------------
+# ============================================
+# REDE COMPARTILHADA ENTRE TODOS OS SERVIÇOS
+# ============================================
 networks:
   togglemaster:
