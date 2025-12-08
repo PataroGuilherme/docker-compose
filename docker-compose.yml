@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # -----------------------------
   # PostgreSQL para o auth-service
@@ -64,3 +66,27 @@ services:
       - evaluation-redis
     environment:
       PORT: "8005"
+      AUTH_SERVICE_URL: http://auth-service:8001
+      FLAG_SERVICE_URL: http://flag-service:8002
+      TARGETING_SERVICE_URL: http://targeting-service:8003
+      REDIS_URL: redis://evaluation-redis:6379
+      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      AWS_SQS_URL: disabled
+      AWS_REGION: disabled
+    ports:
+      - "8005:8005"
+    networks:
+      - togglemaster
+
+# -----------------------------
+# Volumes persistentes
+# -----------------------------
+volumes:
+  auth_pgdata:
+  evaluation_redis_data:
+
+# -----------------------------
+# Rede compartilhada
+# -----------------------------
+networks:
+  togglemaster:
