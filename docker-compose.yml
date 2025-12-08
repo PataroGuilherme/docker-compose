@@ -2,22 +2,21 @@ services:
   # -----------------------------
   # PostgreSQL para o auth-service
   # -----------------------------
-auth-postgres:
-  image: postgres:15
-  container_name: auth-postgres
-  restart: always
-  environment:
-    POSTGRES_USER: admin
-    POSTGRES_PASSWORD: admin123
-    POSTGRES_DB: auth_db
-  ports:
-    - "5432:5432"
-  volumes:
-    - auth_pgdata:/var/lib/postgresql/data
-    - ./db-init/auth:/docker-entrypoint-initdb.d
-  networks:
-    - togglemaster
-
+  auth-postgres:
+    image: postgres:15
+    container_name: auth-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+      - ./db-init/auth:/docker-entrypoint-initdb.d
+    networks:
+      - togglemaster
 
   # -----------------------------
   # auth-service (Go)
@@ -64,22 +63,4 @@ auth-postgres:
       - auth-service
       - evaluation-redis
     environment:
-      PORT: "8005"
-      AUTH_SERVICE_URL: http://auth-service:8001
-      FLAG_SERVICE_URL: http://flag-service:8002
-      TARGETING_SERVICE_URL: http://targeting-service:8003
-      REDIS_URL: redis://evaluation-redis:6379
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
-      AWS_SQS_URL: disabled
-      AWS_REGION: disabled
-    ports:
-      - "8005:8005"
-    networks:
-      - togglemaster
-
-volumes:
-  auth_pgdata:
-  evaluation_redis_data:
-
-networks:
-  togglemaster:
+      PORT: "8005
