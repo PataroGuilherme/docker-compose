@@ -70,10 +70,10 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8001
       FLAG_SERVICE_URL: http://flag-service:8002
       TARGETING_SERVICE_URL: http://targeting-service:8003
-      SQS_QUEUE_URL:  "http://sqs-local:9324/queue/togglemaster-events"
+      SQS_QUEUE_URL:  "http://localhost:9324/000000000000/togglemaster-events"
       AWS_REGION: "us-east-1"
       REDIS_URL: redis://evaluation-redis:6379
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      SERVICE_API_KEY: tm_key_45062ca397c2ea173bfc722f1721751ee8b26d18aa3b44762283d43edc9f578f
     ports:
       - "8005:8005"
     networks:
@@ -113,7 +113,7 @@ services:
       PORT: "8003"
       DATABASE_URL: postgres://admin:admin123@targeting-postgres:5432/targeting_db
       AUTH_SERVICE_URL: http://auth-service:8001
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      SERVICE_API_KEY: tm_key_45062ca397c2ea173bfc722f1721751ee8b26d18aa3b44762283d43edc9f578f
     ports:
       - "8003:8003"
     networks:
@@ -153,7 +153,7 @@ services:
       PORT: "8002"
       DATABASE_URL: postgres://admin:admin123@flags-postgres:5432/flags_db
       AUTH_SERVICE_URL: http://auth-service:8001
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      SERVICE_API_KEY: tm_key_45062ca397c2ea173bfc722f1721751ee8b26d18aa3b44762283d43edc9f578f
     ports:
       - "8002:8002"
     networks:
@@ -183,8 +183,11 @@ services:
     restart: always
     ports:
       - "9324:9324"
+    volumes:
+      - "C:/Users/GUILHERME_PATARO/Etapa02/localstack/elasticmq.conf:/etc/elasticmq/elasticmq.conf"
     networks:
       - togglemaster
+
 
   # =========================
   # ANALYTICS service (worker)
@@ -207,7 +210,8 @@ services:
       AWS_REGION: "us-east-1"
 
       # SQS Local queue URL (ElasticMQ)
-      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
+      SQS_QUEUE_URL: "http://localhost:9324/000000000000/togglemaster-events"
+      AWS_SQS_URL: "http://localhost:9324/000000000000/togglemaster-events"
 
       # boto3 with local endpoints often accepts dummy keys
       AWS_ACCESS_KEY_ID: "dummy"
