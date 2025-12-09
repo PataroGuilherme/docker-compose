@@ -70,7 +70,7 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8001
       FLAG_SERVICE_URL: http://flag-service:8002
       TARGETING_SERVICE_URL: http://targeting-service:8003
-      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
+      SQS_QUEUE_URL:  "http://sqs-local:9324/queue/togglemaster-events"
       AWS_REGION: "us-east-1"
       REDIS_URL: redis://evaluation-redis:6379
       SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
