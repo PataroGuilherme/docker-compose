@@ -1,10 +1,8 @@
-version: "3.9"
-
 services:
 
-  # ============================================
-  # PostgreSQL do AUTH-SERVICE
-  # ============================================
+  # =========================
+  # Postgres - AUTH
+  # =========================
   auth-postgres:
     image: postgres:15
     container_name: auth-postgres
@@ -21,9 +19,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # AUTH-SERVICE (Go)
-  # ============================================
+  # =========================
+  # AUTH service (Go)
+  # =========================
   auth-service:
     build:
       context: ./auth-service
@@ -40,9 +38,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # Redis do EVALUATION-SERVICE
-  # ============================================
+  # =========================
+  # Redis for Evaluation
+  # =========================
   evaluation-redis:
     image: redis:7
     container_name: evaluation-redis
@@ -54,9 +52,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # EVALUATION-SERVICE (Go)
-  # ============================================
+  # =========================
+  # EVALUATION service (Go)
+  # =========================
   evaluation-service:
     build:
       context: ./evaluation-service
@@ -65,23 +63,25 @@ services:
     depends_on:
       - auth-service
       - evaluation-redis
+      - sqs-local
     environment:
       PORT: "8005"
       AUTH_SERVICE_URL: http://auth-service:8001
       FLAG_SERVICE_URL: http://flag-service:8002
       TARGETING_SERVICE_URL: http://targeting-service:8003
+      # point evaluation to local SQS in this docker-compose
+      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
+      AWS_REGION: "us-east-1"
       REDIS_URL: redis://evaluation-redis:6379
       SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
-      AWS_SQS_URL: disabled
-      AWS_REGION: disabled
     ports:
       - "8005:8005"
     networks:
       - togglemaster
 
-  # ============================================
-  # PostgreSQL do TARGETING-SERVICE
-  # ============================================
+  # =========================
+  # Postgres - TARGETING
+  # =========================
   targeting-postgres:
     image: postgres:15
     container_name: targeting-postgres
@@ -98,9 +98,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # TARGETING-SERVICE (Python)
-  # ============================================
+  # =========================
+  # TARGETING service (Python)
+  # =========================
   targeting-service:
     build:
       context: ./targeting-service
@@ -119,9 +119,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # PostgreSQL do FLAG-SERVICE
-  # ============================================
+  # =========================
+  # Postgres - FLAGS
+  # =========================
   flags-postgres:
     image: postgres:15
     container_name: flags-postgres
@@ -138,9 +138,9 @@ services:
     networks:
       - togglemaster
 
-  # ============================================
-  # FLAG-SERVICE (Python)
-  # ============================================
+  # =========================
+  # FLAG service (Python)
+  # =========================
   flag-service:
     build:
       context: ./flag-service
@@ -159,18 +159,73 @@ services:
     networks:
       - togglemaster
 
+  # =========================
+  # DynamoDB Local
+  # =========================
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    container_name: dynamodb-local
+    restart: always
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    networks:
+      - togglemaster
 
-# ============================================
-# VOLUMES PERSISTENTES
-# ============================================
+  # =========================
+  # ElasticMQ (SQS local)
+  # =========================
+  sqs-local:
+    image: softwaremill/elasticmq-native:1.4.0
+    container_name: sqs-local
+    restart: always
+    ports:
+      - "9324:9324"
+    networks:
+      - togglemaster
+
+  # =========================
+  # ANALYTICS service (worker)
+  # =========================
+  analytics-service:
+    build:
+      context: ./analytics-service
+    container_name: analytics-service
+    restart: always
+    depends_on:
+      - dynamodb-local
+      - sqs-local
+      - auth-service
+    environment:
+      PORT: "8006"
+
+      # DynamoDB Local endpoint & table name
+      AWS_DYNAMODB_ENDPOINT: "http://dynamodb-local:8000"
+      AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"
+      AWS_REGION: "us-east-1"
+
+      # SQS Local queue URL (ElasticMQ)
+      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
+
+      # boto3 with local endpoints often accepts dummy keys
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
+      AWS_SESSION_TOKEN: ""
+
+    ports:
+      - "8006:8006"
+    networks:
+      - togglemaster
+
+
 volumes:
   auth_pgdata:
   evaluation_redis_data:
   targeting_pgdata:
   flags_pgdata:
+  dynamodb_data:
 
-# ============================================
-# REDE COMPARTILHADA
-# ============================================
 networks:
   togglemaster:
