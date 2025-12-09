@@ -1,0 +1,12 @@
+GUILHERME_PATARO@SHARKOON-WIN11 MINGW64 ~/Etapa02
+$ ls
+analytics-service/  db/       docker-compose.yml  evaluation-service/  localstack/
+auth-service/       db-init/  dynamodb/           flag-service/        targeting-service/
+
+GUILHERME_PATARO@SHARKOON-WIN11 MINGW64 ~/Etapa02/db-init
+$ ls
+auth/  flags/  targeting/
+
+GUILHERME_PATARO@SHARKOON-WIN11 MINGW64 ~/Etapa02/localstack
+$ ls
+elasticmq.conf
