@@ -1,231 +1,174 @@
 services:
-
-  # =========================
-  # Postgres - AUTH
-  # =========================
+  # -------------------------------------------------------------
+  # PostgreSQL do AUTH-SERVICE
+  # -------------------------------------------------------------
   auth-postgres:
-    image: postgres:15
+    image: postgres:13
     container_name: auth-postgres
-    restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
       POSTGRES_DB: auth_db
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
     volumes:
-      - auth_pgdata:/var/lib/postgresql/data
-      - ./db-init/auth:/docker-entrypoint-initdb.d
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
     networks:
       - togglemaster
 
-  # =========================
-  # AUTH service (Go)
-  # =========================
+  # -------------------------------------------------------------
+  # AUTH-SERVICE
+  # -------------------------------------------------------------
   auth-service:
-    build:
-      context: ./auth-service
+    build: ./auth-service
     container_name: auth-service
-    restart: always
     depends_on:
       - auth-postgres
     environment:
       PORT: "8001"
-      DATABASE_URL: postgres://admin:admin123@auth-postgres:5432/auth_db
-      MASTER_KEY: admin-secreto-123
+      DATABASE_URL: "postgresql://auth_user:auth_password@auth-postgres:5432/auth_db"
+      ADMIN_SECRET_KEY: "admin-secreto-123"
     ports:
       - "8001:8001"
     networks:
       - togglemaster
 
-  # =========================
-  # Redis for Evaluation
-  # =========================
-  evaluation-redis:
-    image: redis:7
-    container_name: evaluation-redis
-    restart: always
-    ports:
-      - "6379:6379"
+  # -------------------------------------------------------------
+  # PostgreSQL do FLAG-SERVICE
+  # -------------------------------------------------------------
+  flag-postgres:
+    image: postgres:13
+    container_name: flag-postgres
+    environment:
+      POSTGRES_DB: flags_db
+      POSTGRES_USER: flags_user
+      POSTGRES_PASSWORD: flags_password
     volumes:
-      - evaluation_redis_data:/data
-    networks:
-      - togglemaster
-
-  # =========================
-  # EVALUATION service (Go)
-  # =========================
-  evaluation-service:
-    build:
-      context: ./evaluation-service
-    container_name: evaluation-service
-    restart: always
-    depends_on:
-      - auth-service
-      - evaluation-redis
-      - sqs-local
-    environment:
-      PORT: "8005"
-      AUTH_SERVICE_URL: http://auth-service:8001
-      FLAG_SERVICE_URL: http://flag-service:8002
-      TARGETING_SERVICE_URL: http://targeting-service:8003
-      # point evaluation to local SQS in this docker-compose
-      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
-      AWS_REGION: "us-east-1"
-      REDIS_URL: redis://evaluation-redis:6379
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
-    ports:
-      - "8005:8005"
-    networks:
-      - togglemaster
-
-  # =========================
-  # Postgres - TARGETING
-  # =========================
-  targeting-postgres:
-    image: postgres:15
-    container_name: targeting-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: targeting_db
+      - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5434:5432"
-    volumes:
-      - targeting_pgdata:/var/lib/postgresql/data
-      - ./db-init/targeting:/docker-entrypoint-initdb.d
     networks:
       - togglemaster
 
-  # =========================
-  # TARGETING service (Python)
-  # =========================
-  targeting-service:
-    build:
-      context: ./targeting-service
-    container_name: targeting-service
-    restart: always
-    depends_on:
-      - targeting-postgres
-      - auth-service
-    environment:
-      PORT: "8003"
-      DATABASE_URL: postgres://admin:admin123@targeting-postgres:5432/targeting_db
-      AUTH_SERVICE_URL: http://auth-service:8001
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
-    ports:
-      - "8003:8003"
-    networks:
-      - togglemaster
-
-  # =========================
-  # Postgres - FLAGS
-  # =========================
-  flags-postgres:
-    image: postgres:15
-    container_name: flags-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: flags_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - flags_pgdata:/var/lib/postgresql/data
-      - ./db-init/flags:/docker-entrypoint-initdb.d
-    networks:
-      - togglemaster
-
-  # =========================
-  # FLAG service (Python)
-  # =========================
+  # -------------------------------------------------------------
+  # FLAG-SERVICE
+  # -------------------------------------------------------------
   flag-service:
-    build:
-      context: ./flag-service
+    build: ./flag-service
     container_name: flag-service
-    restart: always
     depends_on:
-      - flags-postgres
+      - flag-postgres
       - auth-service
     environment:
       PORT: "8002"
-      DATABASE_URL: postgres://admin:admin123@flags-postgres:5432/flags_db
-      AUTH_SERVICE_URL: http://auth-service:8001
-      SERVICE_API_KEY: tm_key_sua_chave_gerada_no_auth_service
+      DATABASE_URL: "postgresql://flags_user:flags_password@flag-postgres:5432/flags_db"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+      API_KEY: "SUA_CHAVE_GERADA_AQUI"
     ports:
       - "8002:8002"
     networks:
       - togglemaster
 
-  # =========================
-  # DynamoDB Local
-  # =========================
+  # -------------------------------------------------------------
+  # TARGETING-SERVICE
+  # -------------------------------------------------------------
+  targeting-service:
+    build: ./targeting-service
+    container_name: targeting-service
+    depends_on:
+      - auth-service
+    environment:
+      PORT: "8003"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+      API_KEY: "SUA_CHAVE_GERADA_AQUI"
+    ports:
+      - "8003:8003"
+    networks:
+      - togglemaster
+
+  # -------------------------------------------------------------
+  # EVALUATION-SERVICE (envia eventos ao SQS)
+  # -------------------------------------------------------------
+  evaluation-service:
+    build: ./evaluation-service
+    container_name: evaluation-service
+    depends_on:
+      - flag-service
+      - targeting-service
+      - sqs-local
+    environment:
+      PORT: "8004"
+      FLAG_SERVICE_URL: "http://flag-service:8002"
+      TARGETING_SERVICE_URL: "http://targeting-service:8003"
+      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
+      AWS_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "fake" 
+      AWS_SECRET_ACCESS_KEY: "fake"
+      AWS_SESSION_TOKEN: "fake"
+    ports:
+      - "8004:8004"
+    networks:
+      - togglemaster
+
+  # -------------------------------------------------------------
+  # SQS LOCALSTACK (ElasticMQ)
+  # -------------------------------------------------------------
+  sqs-local:
+    image: softwaremill/elasticmq-native:latest
+    container_name: sqs-local
+    ports:
+      - "9324:9324" # SQS API
+    volumes:
+      - ./localstack/elasticmq.conf:/opt/elasticmq.conf
+    networks:
+      - togglemaster
+
+  # -------------------------------------------------------------
+  # DYNAMODB LOCAL
+  # -------------------------------------------------------------
   dynamodb-local:
     image: amazon/dynamodb-local
     container_name: dynamodb-local
-    restart: always
-    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
     ports:
       - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
     volumes:
-      - dynamodb_data:/home/dynamodblocal/data
+      - ./dynamodb:/data
     networks:
       - togglemaster
 
-  # =========================
-  # ElasticMQ (SQS local)
-  # =========================
-  sqs-local:
-    image: softwaremill/elasticmq-native:1.4.0
-    container_name: sqs-local
-    restart: always
-    ports:
-      - "9324:9324"
-    networks:
-      - togglemaster
-
-  # =========================
-  # ANALYTICS service (worker)
-  # =========================
+  # -------------------------------------------------------------
+  # ANALYTICS-SERVICE (consome SQS e grava no DynamoDB)
+  # -------------------------------------------------------------
   analytics-service:
-    build:
-      context: ./analytics-service
+    build: ./analytics-service
     container_name: analytics-service
-    restart: always
     depends_on:
-      - dynamodb-local
       - sqs-local
-      - auth-service
+      - dynamodb-local
     environment:
       PORT: "8006"
 
-      # DynamoDB Local endpoint & table name
+      # ---- Endpoints locais ----
+      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
       AWS_DYNAMODB_ENDPOINT: "http://dynamodb-local:8000"
       AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"
+
       AWS_REGION: "us-east-1"
 
-      # SQS Local queue URL (ElasticMQ)
-      AWS_SQS_URL: "http://sqs-local:9324/queue/togglemaster-events"
-
-      # boto3 with local endpoints often accepts dummy keys
-      AWS_ACCESS_KEY_ID: "dummy"
-      AWS_SECRET_ACCESS_KEY: "dummy"
-      AWS_SESSION_TOKEN: ""
+      # ---- Credenciais falsas ----
+      AWS_ACCESS_KEY_ID: "fake"
+      AWS_SECRET_ACCESS_KEY: "fake"
+      AWS_SESSION_TOKEN: "fake"
 
     ports:
       - "8006:8006"
     networks:
       - togglemaster
 
-
-volumes:
-  auth_pgdata:
-  evaluation_redis_data:
-  targeting_pgdata:
-  flags_pgdata:
-  dynamodb_data:
-
+# -------------------------------------------------------------
+# REDE COMPARTILHADA
+# -------------------------------------------------------------
 networks:
   togglemaster:
+    driver: bridge
